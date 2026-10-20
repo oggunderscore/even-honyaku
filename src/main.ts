@@ -31,7 +31,7 @@ import { downloadRomajiDictionary, romajiDictionaryInstalled, romajiDictionaryVo
 type Bridge = Awaited<ReturnType<typeof waitForEvenAppBridge>>
 type GlassesDisplay = Pick<
   Display,
-  'setState' | 'setLive' | 'addTranslation' | 'note' | 'scroll' | 'setSetup' | 'predictions' | 'predictionFailed' | 'predictionSkipped' | 'self' | 'flashMessage' | 'setMode' | 'setKana' | 'configure'
+  'setState' | 'setLive' | 'addTranslation' | 'note' | 'scroll' | 'setSetup' | 'predictions' | 'predictionFailed' | 'predictionSkipped' | 'clearFeed' | 'self' | 'flashMessage' | 'setMode' | 'setKana' | 'configure'
 >
 
 // The phone UI + engine are set up BEFORE we wait for the Even bridge, so they work (and the
@@ -47,6 +47,7 @@ const noDisplay: GlassesDisplay = {
   predictions() {},
   predictionFailed() {},
   predictionSkipped() {},
+  clearFeed() {},
   self() {},
   flashMessage() {},
   setMode: () => Promise.resolve(),
@@ -683,6 +684,13 @@ const menuState = (s: Settings = settings): MenuState => ({
   settings: { mode: s.mode, replyStyle: s.replyStyle, maxOptions: s.maxOptions, voiceFilter: s.voiceFilter, glassesKana: s.glassesKana },
 })
 
+/** Start over as if the app had just opened: the glasses and phone feeds, and what the engine remembers of the talk. */
+function clearConversation() {
+  session.clearConversation()
+  ui.clearFeed()
+  display.clearFeed() // also confirms it in the header
+}
+
 /** The wearer picked one of our items in the OS contextual menu. */
 async function onMenuPick(itemID: number) {
   const item = itemForId(menuItems(menuState()), itemID)
@@ -691,6 +699,9 @@ async function onMenuPick(itemID: number) {
   switch (action.type) {
     case 'toggle_listen':
       await toggleListening()
+      break
+    case 'clear':
+      clearConversation()
       break
     case 'set': {
       await updateSettings(action.patch) // also re-declares the menu so its labels show the new values
@@ -722,7 +733,13 @@ async function initGlasses() {
   // The bridge's store outlives the WebView's localStorage; prefer it (and re-seed it from localStorage).
   const stored = await loadSettingsFromBridge(found)
   const storedVoice = await loadVoiceFromBridge(found)
-  const glasses = new Display(found, { mode: stored.mode, kana: stored.glassesKana, menu: menuItems(menuState(stored)) })
+  const glasses = new Display(found, { mode: stored.mode, kana: stored.glassesKana, menu: menuItems(menuState(stored)),
+    // Swiping on past the bottom clears the glasses feed itself; this clears the rest.
+    onSwipeClear: () => {
+      session.clearConversation()
+      ui.clearFeed()
+    },
+  })
   const initResult = await glasses.init()
   if (initResult !== 0) {
     ui.addError(`Glasses page failed to start (code ${initResult}); phone UI only`)

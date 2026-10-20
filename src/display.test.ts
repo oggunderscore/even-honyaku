@@ -242,6 +242,140 @@ describe('Display: predictive screen', () => {
   })
 })
 
+describe('Display: clearing the feed', () => {
+  afterEach(() => vi.useRealTimers())
+  const swipe = async (d: Display, dir: 'up' | 'down', waitMs = 700) => {
+    await vi.advanceTimersByTimeAsync(waitMs) // a pause since the last swipe: a deliberate one
+    d.scroll(dir)
+    await vi.advanceTimersByTimeAsync(10)
+  }
+  const fill = (d: Display, n: number) => {
+    for (let i = 1; i <= n; i++) d.addTranslation({ id: i, dir: 'listen', japanese: 'x', romaji: `romaji ${i}`, english: `English ${i}` })
+  }
+
+  it('standard: swiping on past the newest translation clears the feed, and the app is told', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    const f = fakeBridge()
+    const cleared = vi.fn()
+    const d = new Display(f.bridge, { onSwipeClear: cleared })
+    await d.init()
+    fill(d, 3)
+    await vi.advanceTimersByTimeAsync(10)
+    expect(f.lastText(2)).toContain('English 3')
+    await swipe(d, 'up') // toward the newest: already there
+    expect(cleared).toHaveBeenCalledTimes(1)
+    expect(f.lastText(1)).toContain('Feed cleared')
+    expect(f.lastText(2)).not.toMatch(/English \d/)
+    expect(f.lastText(2)).toContain('Listening for English and Japanese') // as if just opened
+    fill(d, 1)
+    await vi.advanceTimersByTimeAsync(10)
+    expect(f.lastText(2)).toContain('English 1')
+    expect(f.lastText(2)).not.toContain('English 3')
+  })
+
+  it('standard: swiping toward earlier translations never clears; coming back to the newest and swiping on does', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    const f = fakeBridge()
+    const cleared = vi.fn()
+    const d = new Display(f.bridge, { onSwipeClear: cleared })
+    await d.init()
+    fill(d, 12) // more than fits: the view follows the newest
+    await swipe(d, 'down')
+    await swipe(d, 'down')
+    expect(cleared).not.toHaveBeenCalled()
+    expect(f.lastText(2)).not.toContain('English 12') // reading history
+    await swipe(d, 'up') // back toward the newest, one entry at a time
+    expect(cleared).not.toHaveBeenCalled()
+    await swipe(d, 'up') // the newest again
+    expect(cleared).not.toHaveBeenCalled()
+    expect(f.lastText(2)).toContain('English 12')
+    await swipe(d, 'up') // and on past it
+    expect(cleared).toHaveBeenCalledTimes(1)
+  })
+
+  it('a quick flick that runs on past the bottom does not wipe the conversation; a deliberate swipe afterwards does', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    const f = fakeBridge()
+    const cleared = vi.fn()
+    const d = new Display(f.bridge, { onSwipeClear: cleared })
+    await d.init()
+    fill(d, 12)
+    await swipe(d, 'down')
+    await swipe(d, 'down')
+    await swipe(d, 'up') // one entry short of the newest
+    // the last stretch back arrives as a quick run of swipes
+    await vi.advanceTimersByTimeAsync(350)
+    d.scroll('up') // reaches the newest...
+    await vi.advanceTimersByTimeAsync(350)
+    d.scroll('up') // ...and this one, 350 ms after the last, is part of the same flick
+    expect(cleared).not.toHaveBeenCalled()
+    expect(f.lastText(2)).toContain('English 12')
+    await swipe(d, 'up') // a separate, deliberate swipe
+    expect(cleared).toHaveBeenCalledTimes(1)
+  })
+
+  it('predictive: swiping down past the last suggested reply clears; moving the highlight and reading earlier turns do not', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    const f = fakeBridge()
+    const cleared = vi.fn()
+    const d = new Display(f.bridge, { mode: 'predictive', onSwipeClear: cleared })
+    await d.init()
+    d.addTranslation(hear(1, 'Hot or iced?'), true)
+    d.predictions(1, choice)
+    await vi.advanceTimersByTimeAsync(10)
+    await swipe(d, 'down') // 1 -> 2: moves the highlight
+    expect(cleared).not.toHaveBeenCalled()
+    expect(f.lastText(2)).toContain('▶ 2 Iced, please')
+    await swipe(d, 'down') // on the last reply: clears
+    expect(cleared).toHaveBeenCalledTimes(1)
+    expect(f.lastText(2)).toMatch(/Waiting/)
+    expect(f.lastText(2)).not.toContain('Iced')
+  })
+
+  it('predictive: swiping down while reading an earlier turn comes back to the live one instead of clearing', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    const f = fakeBridge()
+    const cleared = vi.fn()
+    const d = new Display(f.bridge, { mode: 'predictive', onSwipeClear: cleared })
+    await d.init()
+    d.addTranslation(hear(1, 'Hot or iced?'), true)
+    d.predictions(1, choice)
+    d.self(1, 1)
+    d.addTranslation(hear(2, 'Anything else?'), true)
+    d.predictions(2, { kind: 'single', options: [{ gloss: 'No, thanks', ja: 'いいえ', romaji: 'iie' }] })
+    await swipe(d, 'up') // read the earlier turn
+    expect(f.lastText(2)).toContain('Hot or iced?')
+    await swipe(d, 'down')
+    expect(cleared).not.toHaveBeenCalled()
+    expect(f.lastText(2)).toContain('Anything else?')
+  })
+
+  it('there is nothing to clear on an empty screen: no flash, no call', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    const f = fakeBridge()
+    const cleared = vi.fn()
+    const d = new Display(f.bridge, { onSwipeClear: cleared })
+    await d.init()
+    await swipe(d, 'up')
+    expect(cleared).not.toHaveBeenCalled()
+    expect(f.lastText(1)).not.toContain('Feed cleared')
+  })
+
+  it('clearFeed() (the menu item) clears whichever screen is showing and a pending "thinking..." with it', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    const f = fakeBridge()
+    const d = new Display(f.bridge, { mode: 'predictive' })
+    await d.init()
+    d.addTranslation(hear(1, 'Hot or iced?'), true)
+    await vi.advanceTimersByTimeAsync(10)
+    expect(f.lastText(2)).toMatch(/thinking/)
+    d.clearFeed()
+    await vi.advanceTimersByTimeAsync(10_000) // the watchdog for the cleared turn must not fire afterwards
+    expect(f.lastText(2)).toMatch(/Waiting/)
+    expect(f.lastText(2)).not.toMatch(/R-TIME|thinking/)
+  })
+})
+
 describe('Display: header', () => {
   it('shows the app name (as in the store listing), on the setup screen too', async () => {
     const f = fakeBridge()

@@ -9,3 +9,4 @@ public/dict/
 live-report.md
 scripts/screenshots/harness.log
 scripts/screenshots/sim.log
+__pycache__/

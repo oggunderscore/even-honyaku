@@ -267,6 +267,13 @@ export class PhoneUi {
     this.scroll()
   }
 
+  /** Empty the feed as if the app had just opened. */
+  clearFeed() {
+    this.log.querySelectorAll('.entry').forEach((e) => e.remove())
+    this.liveEl = null
+    this.empty.hidden = false
+  }
+
   addError(message: string) {
     this.addLine('err', 'ERROR', message)
   }

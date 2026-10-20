@@ -244,3 +244,48 @@ describe('PredictiveView conversation flow', () => {
     expect(v.rows()).toEqual(['JP: Hot or iced?'])
   })
 })
+
+describe('PredictiveView: the bottom, and clearing', () => {
+  it('is at the bottom on the live turn with the last reply highlighted (or with nothing to pick), and only there', () => {
+    const v = view()
+    expect(v.atBottom).toBe(false) // nothing on screen
+    v.heard(q(1, 'Hot or iced?'), true)
+    expect(v.atBottom).toBe(true) // still thinking: nothing to move through
+    v.predictions(1, choice)
+    expect(v.atBottom).toBe(false) // first of three highlighted
+    v.move('down')
+    expect(v.atBottom).toBe(false)
+    v.move('down')
+    expect(v.atBottom).toBe(true) // the last reply
+    v.move('up')
+    expect(v.atBottom).toBe(false)
+  })
+
+  it('reading an earlier turn is not the bottom; a single reply is', () => {
+    const v = view()
+    v.heard(q(1, 'Hot or iced?'), true)
+    v.predictions(1, choice)
+    v.said(0, 1)
+    v.heard(q(2, 'Anything else?'), true)
+    v.predictions(2, single)
+    expect(v.atBottom).toBe(true)
+    v.move('up') // back to the first turn
+    expect(v.atBottom).toBe(false)
+    v.move('down')
+    expect(v.atBottom).toBe(true)
+  })
+
+  it('clear() returns to the opening screen, and a late suggestion for a cleared turn is not shown', () => {
+    const v = view()
+    v.heard(q(1, 'Hot or iced?'), true)
+    v.predictions(1, choice)
+    v.heard(q(2, 'Anything else?'), true)
+    v.clear()
+    expect(v.hasContent).toBe(false)
+    expect(v.rows().join(' ')).toMatch(/Waiting/)
+    v.predictions(2, single) // arrives after the clear
+    expect(v.rows().join(' ')).not.toMatch(/arigatou|Thank you/)
+    v.heard(q(3, 'Welcome'), true)
+    expect(v.rows()[0]).toBe('JP: Welcome')
+  })
+})

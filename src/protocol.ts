@@ -91,6 +91,8 @@ export type ClientMsg =
    *  translation with the chosen model. `id` comes back with the result so a late answer to an old check can be ignored. */
   | { type: 'test'; scope: TestScope; id: number }
   | { type: 'start'; mode: StreamMode }
+  /** Begin a fresh conversation: forget what was said so far (context for the model, the other person's current turn, suggestions) and drop anything still being translated. Streams keep running. */
+  | { type: 'clear' }
   /** Flush the current stream (finals are translated, then `done` is sent). */
   | { type: 'end' }
   /** Dev aid: skip STT and translate typed text; direction is detected from the script. */

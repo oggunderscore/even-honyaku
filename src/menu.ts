@@ -1,5 +1,5 @@
-// The glasses menu: the OS contextual menu (tap then long press) with our own items — Pause / Resume listening and the
-// settings. Double tap is not used here: on the home page it must open the system exit dialog (see exit.ts).
+// The glasses menu: the OS contextual menu (tap then long press) with our own items — Pause / Resume listening, Clear
+// translations and the settings. Double tap is not used here: on the home page it must open the system exit dialog (see exit.ts).
 //
 // The OS draws the menu and reports a pick as `menuItemClickEvent` carrying the `itemID` we declared. Every item is
 // fire-and-forget (the menu closes, the label can't change in place), so a label that shows state is updated by
@@ -19,7 +19,7 @@ export interface MenuItem {
   label: string
 }
 
-export type MenuAction = { type: 'toggle_listen' } | { type: 'set'; patch: Partial<Settings> } | { type: 'note'; text: string }
+export type MenuAction = { type: 'toggle_listen' } | { type: 'clear' } | { type: 'set'; patch: Partial<Settings> } | { type: 'note'; text: string }
 
 /** The firmware accepts at most this many app items. */
 export const MAX_MENU_ITEMS = 10
@@ -33,6 +33,7 @@ export function menuItems(s: MenuState): MenuItem[] {
   const c = s.settings
   return [
     { id: 'toggle', label: 'Pause / Resume' },
+    { id: 'clear', label: 'Clear translations' },
     { id: 'mode', label: `Mode: ${c.mode === 'predictive' ? 'Predictive' : 'Standard'}` },
     { id: 'style', label: `Replies: ${c.replyStyle === 'polite' ? 'Polite' : 'Casual'}` },
     { id: 'options', label: `Options: ${c.maxOptions}` },
@@ -55,6 +56,8 @@ export function menuPick(s: MenuState, id: string): MenuAction | null {
   switch (id) {
     case 'toggle':
       return { type: 'toggle_listen' }
+    case 'clear':
+      return { type: 'clear' }
     case 'mode':
       if (c.mode === 'standard' && !s.hasLlm) return { type: 'note', text: 'Predictive needs an OpenRouter or Claude key' }
       return { type: 'set', patch: { mode: c.mode === 'predictive' ? 'standard' : 'predictive' } }

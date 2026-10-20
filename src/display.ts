@@ -31,6 +31,11 @@ const ID_FOOTER = 3
 
 /** Live interim text changes many times a second; the glasses link is a slow BLE pipe, so don't flood it. */
 const LIVE_MIN_MS = 350
+/**
+ * A swipe that would clear the feed only counts if the wearer has not swiped in the last moment: a quick flick that runs
+ * on past the bottom must not wipe the conversation; a deliberate extra swipe still does.
+ */
+const CLEAR_AFTER_QUIET_MS = 600
 /** How long "thinking..." may stay up with no word from the engine: two 3 s attempts plus a margin. */
 const THINK_GIVE_UP_MS = 9000
 const THINK_GIVE_UP_TEXT = 'Replies: too slow (R-TIME)'
@@ -70,14 +75,18 @@ export class Display {
   private sent = new Map<number, string>()
   private bodyTimer: ReturnType<typeof setTimeout> | undefined
   private thinkTimer: ReturnType<typeof setTimeout> | undefined
+  private lastScrollAt = 0
+  /** The wearer cleared the feed with a swipe: the rest of the app (phone feed, engine memory) clears too. */
+  private readonly onSwipeClear: (() => void) | undefined
   private lastBodyAt = 0
   /** A page rebuild in flight; text updates wait for it. */
   private rebuilding: Promise<unknown> = Promise.resolve()
 
   constructor(
     private readonly bridge: Bridge,
-    opts: { mode?: AppMode; kana?: boolean; menu?: MenuItem[] } = {},
+    opts: { mode?: AppMode; kana?: boolean; menu?: MenuItem[]; onSwipeClear?: () => void } = {},
   ) {
+    this.onSwipeClear = opts.onSwipeClear
     this.menu = opts.menu ?? []
     this.mode = opts.mode ?? 'standard'
     this.kana = opts.kana ?? false
@@ -292,12 +301,39 @@ export class Display {
     this.renderBody()
   }
 
-  /** Swipe. Classic: scroll the feed one translation. Predictive: move the highlight / read earlier turns. */
+  /**
+   * Swipe. Classic: scroll the feed one translation (down = earlier, up = toward the newest). Predictive: move the highlight
+   * / read earlier turns (down = toward the live turn). Swiping on past the bottom (the newest translation, or the last
+   * suggested reply) clears the feed: see `clearFeed`.
+   */
   scroll(direction: 'up' | 'down') {
     if (this.setup) return
-    const changed = this.mode === 'predictive' ? this.view.move(direction) : this.feed.scroll(direction)
+    const now = Date.now()
+    const deliberate = now - this.lastScrollAt >= CLEAR_AFTER_QUIET_MS
+    this.lastScrollAt = now
+    const predictive = this.mode === 'predictive'
+    const atBottom = predictive ? direction === 'down' && this.view.atBottom : direction === 'up' && this.feed.atNewest
+    if (atBottom) {
+      if (deliberate) {
+        this.clearFeed()
+        this.onSwipeClear?.()
+      }
+      return
+    }
+    const changed = predictive ? this.view.move(direction) : this.feed.scroll(direction)
     if (!changed) return
     this.renderHeader()
+    this.renderBody()
+  }
+
+  /** Start over, as if the app had just opened: every translation and suggestion gone, whichever screen is showing. */
+  clearFeed() {
+    this.feed.clear()
+    this.view.clear()
+    this.stopWatching()
+    clearTimeout(this.bodyTimer)
+    this.bodyTimer = undefined
+    this.flashMessage('Feed cleared')
     this.renderBody()
   }
 
@@ -311,9 +347,8 @@ export class Display {
       return wrapLine(`${STATE_LABEL[this.state]}   ${hint}`.trimEnd())[0] ?? ''
     }
     if (this.flash) return wrapLine(`${STATE_LABEL[this.state]}   ${this.flash}`)[0] ?? '' // keep the state visible
-    const where = this.feed.cleared ? '  [cleared]' : ''
     // The app's own name, as in the store listing: the on-glasses name must match it.
-    return `Honyaku   ${STATE_LABEL[this.state]}${where}`
+    return `Honyaku   ${STATE_LABEL[this.state]}`
   }
 
   /** The rows the body shows in the current mode. */
@@ -325,7 +360,6 @@ export class Display {
     }
     const rows = this.feed.visible()
     if (rows.length) return rows
-    if (this.feed.cleared) return [' '] // a blank view, but the container stays valid
     return this.state === 'idle'
       ? ['Paused - not listening.', 'Tap to resume.']
       : ['Listening for English and Japanese.', 'Japanese -> English shows here.', 'English -> romaji shows here.']

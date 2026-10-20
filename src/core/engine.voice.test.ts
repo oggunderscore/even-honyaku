@@ -284,6 +284,55 @@ describe('Engine: robustness', () => {
     t.engine.close()
   })
 
+  it('clearing starts over: the model forgets the conversation so far, and suggestions in the works are dropped', async () => {
+    const fetchMock = llm()
+    vi.stubGlobal('fetch', fetchMock)
+    const t = setup()
+    t.h().onFinal(QUESTION, 'listen', { start: 0, end: 2 })
+    await vi.waitFor(() => expect(t.types()).toContain('predictions'))
+    t.h().onFinal('ホットでお願いします', 'listen', { start: 5, end: 7 }) // the wearer answers: it joins the history
+    await vi.waitFor(() => expect(t.types()).toContain('self'))
+
+    t.engine.handle({ type: 'clear' })
+    t.h().onFinal('ミルクは入れますか。', 'listen', { start: 20, end: 22 })
+    await vi.waitFor(() => expect(t.of('predictions')).toHaveLength(2))
+    const asked = fetchMock.mock.calls
+      .map((c) => JSON.parse(String(c[1].body)))
+      .filter((b) => b.messages[0].content.includes('Line 1: single'))
+      .at(-1)
+    expect(asked.messages[1].content).not.toContain('Recent turns') // nothing before the clear is carried over
+    expect(asked.messages[1].content).not.toContain('wearer said')
+    t.engine.close()
+  })
+
+  it('clearing drops a translation and a suggestion that were still on their way', async () => {
+    let release!: () => void
+    const gate = new Promise<void>((r) => (release = r))
+    const fetchMock = vi.fn().mockImplementation(async (_u: string, init: RequestInit) => {
+      const body = JSON.parse(String(init.body))
+      await gate // the model is slow
+      const system: string = body.messages[0].content
+      return chatResponse(init, system.includes('Line 1: single') ? OPTIONS : system.includes('EN:') ? 'EN: Hot or iced?' : 'JA: x\nROMAJI: x')
+    })
+    vi.stubGlobal('fetch', fetchMock)
+    const t = setup()
+    t.h().onFinal(QUESTION, 'listen', { start: 0, end: 2 })
+    await new Promise((r) => setTimeout(r, 60)) // translation and prediction are both waiting on the model
+    t.engine.handle({ type: 'clear' })
+    release()
+    await new Promise((r) => setTimeout(r, 150))
+    expect(t.of('final')).toHaveLength(0)
+    expect(t.of('predictions')).toHaveLength(0)
+    expect(t.partials()).toHaveLength(0)
+    expect(t.of('error')).toHaveLength(0)
+
+    // and the engine is fine afterwards
+    t.h().onFinal(QUESTION, 'listen', { start: 10, end: 12 })
+    await vi.waitFor(() => expect(t.of('predictions')).toHaveLength(1))
+    expect(t.of('final')).toHaveLength(1)
+    t.engine.close()
+  })
+
   it('a continuation phrase makes the in-flight prediction obsolete: only the answer to the whole turn arrives', async () => {
     let n = 0
     const fetchMock = vi.fn().mockImplementation((_url: string, init: RequestInit) => {

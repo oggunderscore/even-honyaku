@@ -21,7 +21,8 @@ Listening is **off when the app starts** — turn it on when you want it.
 | Glasses | **tap** | pause / resume listening (the mic closes while paused: nothing is streamed or billed). The tap takes effect about a third of a second later, so a double tap never also toggles it |
 | Glasses | **double tap** | exit: opens the system exit confirmation (answer *No* and everything keeps working) |
 | Glasses | **tap, then long press** | the glasses' own menu, with Honyaku's items added: **Pause / Resume**, **Mode**, **Replies**, **Options**, **Voice filter**, **Kana** |
-| Glasses | swipe | Standard: scroll the feed one translation at a time (up pushes the top one off, down brings one back). Predictive: move the highlight between suggested replies; swipe up past the first one to read earlier turns, down to come back |
+| Glasses | swipe | Standard: scroll the feed one translation at a time (down brings earlier ones back, up moves toward the newest). Predictive: move the highlight between suggested replies; swipe up past the first one to read earlier turns, down to come back |
+| Glasses | swipe on past the bottom, or **Clear translations** in the glasses menu | Clears the feed and everything the app remembers of the conversation, as if you had just opened it (the phone feed too). Standard: swipe up at the newest translation. Predictive: swipe down on the last reply. A quick flick that runs on does not clear: the swipe must come at least 0.6 s after the previous one |
 | Phone | Pause / Resume listening button | same as a tap on the glasses |
 | Phone | **Hold** big button | talk English while held, translate on release (works while paused) |
 

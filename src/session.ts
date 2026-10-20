@@ -64,6 +64,11 @@ export class Session {
     else this.backlog.push(pcm)
   }
 
+  /** Start a fresh conversation: the engine forgets the context and drops anything still in flight. */
+  clearConversation() {
+    this.engine?.handle({ type: 'clear' })
+  }
+
   endStream() {
     this.sendJson({ type: 'end' })
   }

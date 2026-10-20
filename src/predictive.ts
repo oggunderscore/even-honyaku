@@ -100,6 +100,22 @@ export class PredictiveView {
 
   // ── events from the engine ──────────────────────────────────────────────────
 
+  /** Showing the live turn with the last option highlighted (or nothing left to pick): a further swipe down means "clear". */
+  get atBottom(): boolean {
+    const t = this.live
+    if (!t || this.viewing !== null) return false
+    const options = t.prediction?.options.length ?? 0
+    return options === 0 || t.free !== null || this.cursor >= options - 1
+  }
+
+  /** Forget every turn, as if the app had just opened. */
+  clear() {
+    this.turns = []
+    this.viewing = null
+    this.cursor = 0
+    this.early = null
+  }
+
   /** Interim transcript of the other person; an empty string clears it. */
   hearing(text: string) {
     if (!text) {

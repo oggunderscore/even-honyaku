@@ -14,6 +14,9 @@ You bring your own Deepgram and translation (Google, OpenRouter or Claude) keys;
 
 ## Release notes (English, 1 to 3 lines each)
 
+**1.1.10**
+- Clear the feed whenever you like: swipe on past the bottom of the feed, or pick Clear translations in the glasses menu. It starts fresh, as if you had just opened the app, which gets rid of stray clips the microphone picked up.
+
 **1.1.9**
 - OpenRouter now defaults to the fastest model. If a reply is not back after a few seconds the app tries once more, and if that fails it says so instead of waiting forever on "thinking...".
 

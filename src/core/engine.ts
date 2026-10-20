@@ -61,6 +61,8 @@ export class Engine {
   private mode: StreamMode | null = null
   private cfg: ResolvedConfig
   private predict: PredictConfig | null = null
+  /** Bumped by every clear: work started before it must not show up after it. */
+  private epoch = 0
   private voice = { filter: true, strictness: 0.5 }
   private profile: VoiceProfile | null = null
   private profileTimer: ReturnType<typeof setTimeout> | undefined
@@ -101,6 +103,9 @@ export class Engine {
         break
       case 'end':
         void this.end()
+        break
+      case 'clear':
+        this.clearConversation()
         break
       case 'text':
         if (this.requireKeys(['translate'])) this.enqueue(detectDir(msg.text), msg.text)
@@ -352,6 +357,17 @@ export class Engine {
     }, 3000)
   }
 
+  /**
+   * Start a fresh conversation, as if the app had just opened: forget the history the model gets as context, the other
+   * person's current turn and the suggestions, and let anything still being translated or predicted finish unseen.
+   */
+  private clearConversation() {
+    this.epoch++
+    this.history = []
+    this.cancelTurn()
+    this.echo.clear()
+  }
+
   /** The wearer read one of the suggestions aloud: it joins the conversation history and ends the other's turn. */
   private wearerSaid(option: ReplyOption) {
     this.history.push({ id: this.nextId++, dir: 'speak', english: option.gloss, japanese: option.ja, romaji: option.romaji })
@@ -363,11 +379,14 @@ export class Engine {
 
   private enqueue(dir: Direction, text: string, flags: { unsure?: boolean; heardEnglish?: boolean } = {}): number {
     const id = this.nextId++
+    const epoch = this.epoch // a clear while this is queued or in flight makes the result stale
     this.pending = this.pending.then(async () => {
+      if (epoch !== this.epoch) return
       try {
         const t: Translation = flags.heardEnglish
           ? { id, dir: 'listen', japanese: '', romaji: '', english: text, heardEnglish: true }
           : { ...(await translate(dir, text, this.history, id, this.cfg.translate, { romaji: !this.predict })), ...(flags.unsure ? { unsure: true } : {}) }
+        if (epoch !== this.epoch) return
         this.history.push(t)
         if (this.history.length > 6) this.history.shift()
         this.emit({ type: 'final', ...t })
@@ -377,6 +396,7 @@ export class Engine {
           this.emit({ type: 'error', code: 'no_romaji', ref: 'C-DICT', message: new RomajiNotInstalledError().message })
         }
       } catch (err) {
+        if (epoch !== this.epoch) return
         if (err instanceof RomajiNotInstalledError) this.emit({ type: 'error', code: 'no_romaji', ref: 'C-DICT', message: err.message })
         else this.fail('translate', err)
       }

@@ -9,9 +9,10 @@ const state = (over: Partial<MenuState> = {}, settings: Partial<MenuState['setti
 const bytes = (s: string) => new TextEncoder().encode(s).length
 
 describe('menu items', () => {
-  it('starts with Pause / Resume listening, then the settings with their current values', () => {
+  it('starts with Pause / Resume listening and Clear translations, then the settings with their current values', () => {
     expect(menuItems(state()).map((i) => i.label)).toEqual([
       'Pause / Resume',
+      'Clear translations',
       'Mode: Standard',
       'Replies: Polite',
       'Options: 3',
@@ -20,6 +21,7 @@ describe('menu items', () => {
     ])
     expect(menuItems(state({}, { mode: 'predictive', replyStyle: 'casual', maxOptions: 2, voiceFilter: false, glassesKana: true })).map((i) => i.label)).toEqual([
       'Pause / Resume',
+      'Clear translations',
       'Mode: Predictive',
       'Replies: Casual',
       'Options: 2',
@@ -49,8 +51,9 @@ describe('menu items', () => {
 })
 
 describe('menuPick', () => {
-  it('toggles listening', () => {
+  it('toggles listening, and clears the translations', () => {
     expect(menuPick(state(), 'toggle')).toEqual({ type: 'toggle_listen' })
+    expect(menuPick(state(), 'clear')).toEqual({ type: 'clear' })
     expect(menuPick(state(), 'nope')).toBeNull()
   })
 
@@ -74,7 +77,8 @@ describe('itemForId', () => {
   it('maps the OS item id back to the item, and ignores anything it never declared', () => {
     const items = menuItems(state())
     expect(itemForId(items, itemIdAt(0))?.id).toBe('toggle')
-    expect(itemForId(items, itemIdAt(5))?.id).toBe('kana')
+    expect(itemForId(items, itemIdAt(1))?.id).toBe('clear')
+    expect(itemForId(items, itemIdAt(6))?.id).toBe('kana')
     expect(itemForId(items, 0)).toBeNull()
     expect(itemForId(items, 99)).toBeNull()
     expect(itemForId(items, undefined)).toBeNull()

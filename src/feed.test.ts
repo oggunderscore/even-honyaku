@@ -39,58 +39,50 @@ describe('Feed', () => {
     expect(f.visible()[0]).toBe('row 4')
   })
 
-  it('scrolling up pushes rows off the top, one row at a time, until the view is empty', () => {
+  it('scrolling up moves toward the newest and stops there: from the newest rows there is nowhere further to go', () => {
     const f = new Feed()
     fill(f, 4)
-    expect(f.scroll('up')).toBe(true)
-    expect(f.visible()).toEqual(['row 2', 'row 3', 'row 4'])
-    f.scroll('up'); f.scroll('up')
-    expect(f.visible()).toEqual(['row 4'])
-    f.scroll('up')
-    expect(f.visible()).toEqual([])
-    expect(f.cleared).toBe(true)
-    expect(f.scroll('up')).toBe(false) // nothing further to hide
+    expect(f.atNewest).toBe(true)
+    expect(f.scroll('up')).toBe(false) // already showing the newest: the display turns this into "clear"
+    expect(f.visible()).toEqual(['row 1', 'row 2', 'row 3', 'row 4'])
   })
 
-  it('scrolling down brings earlier rows back, down to the very first', () => {
+  it('scrolling down brings earlier rows back, down to the very first; scrolling up returns, never past the newest', () => {
     const f = new Feed()
     fill(f, 20)
     for (let i = 0; i < 40; i++) f.scroll('down')
     expect(f.visible()[0]).toBe('row 1')
+    expect(f.atNewest).toBe(false)
     expect(f.scroll('down')).toBe(false)
     f.scroll('up')
     expect(f.visible()[0]).toBe('row 2')
-  })
-
-  it('a long history can be scrolled all the way off and back', () => {
-    const f = new Feed()
-    fill(f, 20)
     let up = 0
     while (f.scroll('up')) up++
-    expect(up).toBe(7) // from the follow position (start 13) to the end (20)
-    expect(f.cleared).toBe(true)
-    let down = 0
-    while (f.scroll('down')) down++
-    expect(down).toBe(20)
-    expect(f.visible()[0]).toBe('row 1')
+    expect(up).toBe(12) // back to the follow position (start 13) one row at a time
+    expect(f.atNewest).toBe(true)
+    expect(f.visible().at(-1)).toBe('row 20')
   })
 
-  it('after clearing, new translations appear on their own, from the top', () => {
+  it('clear() empties the feed as if the app had just opened, and new rows start from the top', () => {
     const f = new Feed()
-    fill(f, 4)
-    for (let i = 0; i < 4; i++) f.scroll('up')
+    fill(f, 20)
+    f.scroll('down')
+    f.setLive('hearing...')
+    f.clear()
+    expect(f.visible()).toEqual([])
+    expect(f.length).toBe(0)
+    expect(f.atNewest).toBe(false) // nothing to be at the bottom of
     f.add('fresh 1')
     expect(f.visible()).toEqual(['fresh 1'])
     f.add('fresh 2')
     expect(f.visible()).toEqual(['fresh 1', 'fresh 2'])
-    f.scroll('down') // the hidden history is still one swipe away
-    expect(f.visible().at(0)).toBe('row 4')
+    expect(f.scroll('down')).toBe(false) // no hidden history left
   })
 
   it('stays pinned to the newest rows after clearing, once new rows overflow the window', () => {
     const f = new Feed()
     fill(f, 4)
-    for (let i = 0; i < 4; i++) f.scroll('up')
+    f.clear()
     for (let i = 1; i <= VIEW_ROWS + 2; i++) f.add(`n${i}`)
     expect(f.visible()).toHaveLength(VIEW_ROWS)
     expect(f.visible().at(-1)).toBe(`n${VIEW_ROWS + 2}`)
@@ -119,27 +111,23 @@ describe('Feed', () => {
     for (let i = 1; i <= 6; i++) f.add(`you: q${i}\n> a${i}`)
     // 12 rows, 7 visible, following the newest: starts mid-entry at row 5
     expect(f.visible()).toEqual(['> a3', 'you: q4', '> a4', 'you: q5', '> a5', 'you: q6', '> a6'])
-    f.scroll('up') // next entry boundary is row 6 (q4)
-    expect(f.visible()).toEqual(['you: q4', '> a4', 'you: q5', '> a5', 'you: q6', '> a6'])
-    f.scroll('up')
-    expect(f.visible()).toEqual(['you: q5', '> a5', 'you: q6', '> a6'])
-    f.scroll('up'); f.scroll('up')
-    expect(f.visible()).toEqual([])
+    f.scroll('down') // the previous entry boundary is row 4 (q3)
+    expect(f.visible()).toEqual(['you: q3', '> a3', 'you: q4', '> a4', 'you: q5', '> a5', 'you: q6'])
     f.scroll('down')
-    expect(f.visible()).toEqual(['you: q6', '> a6'])
-    f.scroll('down')
-    expect(f.visible()).toEqual(['you: q5', '> a5', 'you: q6', '> a6'])
+    expect(f.visible()[0]).toBe('you: q2')
     while (f.scroll('down')) { /* to the top */ }
     expect(f.visible()[0]).toBe('you: q1')
+    f.scroll('up')
+    expect(f.visible()[0]).toBe('you: q2') // one whole entry forward
   })
 
   it('treats a wrapped translation as one entry', () => {
     const f = new Feed()
     f.add('you: ' + 'word '.repeat(40).trim() + '\n> ok') // wraps to several rows
-    f.add('you: next\n> two')
-    const before = f.visible().length
-    f.scroll('up')
-    expect(f.visible()).toEqual(['you: next', '> two'])
-    expect(before).toBeGreaterThan(f.visible().length)
+    for (let i = 1; i <= 8; i++) f.add(`you: e${i}\n> ok`)
+    while (f.scroll('down')) { /* to the top */ }
+    expect(f.visible()[0]).toMatch(/^you: word/)
+    f.scroll('up') // steps over the whole wrapped entry at once
+    expect(f.visible()[0]).toBe('you: e1')
   })
 })

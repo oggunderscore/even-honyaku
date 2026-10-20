@@ -20,7 +20,7 @@ background and the text.
 | 11-predictive-reply-read-aloud | The wearer read a reply aloud: it is marked, and not translated back |
 | 12-predictive-your-own-english-as-romaji | The wearer answers in their own English: romaji to read |
 | 13-predictive-directions | A long answer (directions): one reply |
-| 14-glasses-menu | The glasses' own menu (tap, then long press) |
+| 14-glasses-menu | The glasses' own menu (tap, then long press), with Pause / Resume and Clear translations |
 
 ## Regenerating them
 

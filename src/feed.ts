@@ -2,8 +2,8 @@
 //
 // Content is laid out from the top of the body. New translations are appended below the existing rows (the
 // "bottom"); once they overflow the window the view follows them, so the newest row is always the last visible one.
-// Swiping scrolls row by row: up pushes rows off the top (past the last row the view is empty, every earlier
-// translation hidden), down brings earlier rows back. New rows that arrive while the view is empty appear on their own.
+// Swiping scrolls one entry at a time: down brings earlier entries back, up moves toward the newest. The view never goes
+// past the newest rows: swiping on from there is "clear the feed", which the display turns into `clear()`.
 
 /** Rows that fit in the body container (216 px at ~28 px a line). */
 export const VIEW_ROWS = 7
@@ -97,9 +97,17 @@ export class Feed {
     return this.all.slice(this.start, this.start + VIEW_ROWS)
   }
 
-  /** Everything is scrolled away (and there is something to scroll away). */
-  get cleared(): boolean {
-    return this.length > 0 && this.start >= this.length
+  /** The newest row is on screen (the normal state: new rows are followed as they arrive). */
+  get atNewest(): boolean {
+    return this.length > 0 && this.start >= this.followStart
+  }
+
+  /** Forget everything, as if the app had just opened. */
+  clear() {
+    this.entries = []
+    this.live = []
+    this.top = 0
+    this.follow = true
   }
 
   /** Append a finished entry (a translation or a note). */
@@ -126,19 +134,23 @@ export class Feed {
   }
 
   /**
-   * One swipe moves a whole entry (the "JP/you" line and its translation together). 'up' pushes the top entry
-   * off the screen; 'down' brings the previous one back. Returns whether anything moved.
+   * One swipe moves a whole entry (the "JP/you" line and its translation together). 'down' brings the previous, older entry
+   * back; 'up' moves toward the newest and stops there (returns false once the newest rows are already on screen).
    */
   scroll(dir: 'up' | 'down'): boolean {
     const before = this.start
     const bounds = this.boundaries
-    const next =
-      dir === 'up'
-        ? (bounds.find((b) => b > before) ?? this.length)
-        : ([...bounds].reverse().find((b) => b < before) ?? 0)
+    if (dir === 'up') {
+      if (before >= this.followStart) return false
+      const next = Math.min(bounds.find((b) => b > before) ?? this.followStart, this.followStart)
+      this.top = next
+      this.follow = next >= this.followStart
+      return true
+    }
+    const next = [...bounds].reverse().find((b) => b < before) ?? 0
     if (next === before) return false
     this.top = next
-    this.follow = next >= this.followStart
+    this.follow = false
     return true
   }
 }
