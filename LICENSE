@@ -1,0 +1,31 @@
+Honyaku (even-honyaku)
+
+Copyright (c) 2026 oggunderscore. All rights reserved.
+
+This software, including its source code, documentation, images and other
+materials in this repository ("the Software"), is proprietary. It is made
+available for viewing only, and no license or other right is granted except as
+stated below.
+
+Without the prior written permission of the copyright holder, you may not:
+
+  - use, run, copy, modify, merge, translate or create derivative works of the
+    Software;
+  - publish, distribute, sublicense, sell, rent, lease or otherwise make the
+    Software or any part of it available to others;
+  - use the Software, or any part of it, to build, train or improve a competing
+    product or service.
+
+The only permitted uses are (1) by the copyright holder and those the copyright
+holder has authorised in writing, and (2) use of the compiled Honyaku app as
+distributed through Even Hub, under the terms of that distribution.
+
+Third-party components used by the Software are not covered by this license.
+They remain under their own licenses, listed in THIRD-PARTY-NOTICES.md.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
