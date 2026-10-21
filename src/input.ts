@@ -1,6 +1,6 @@
 // Turns a raw Even Hub event into one of our gestures.
 //
-// Where each gesture arrives (SDK 0.0.14+, see even-realities-docs/build/device-apis.md):
+// Where each gesture arrives (SDK 0.0.14+, see hub.evenrealities.com/docs, build/device-apis):
 //   - tap / double tap / swipe: on the capturing container (`textEvent` / `listEvent`); a tap is eventType 0,
 //     which protobuf omits, so a *missing* eventType means CLICK.
 //   - long press + release: always on `sysEvent`, whichever container captures (Even App 2.2.9+).

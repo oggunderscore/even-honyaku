@@ -1,6 +1,6 @@
 # Honyaku: Even Hub submission audit
 
-Checked against `../SUBMISSION-CHECKLIST.md` (the rules) on 2026-10-19, at version 1.1.5 (updated for 1.1.6). **[auto]** = enforced by
+Checked against `docs/SUBMISSION-CHECKLIST.md` (the rules) on 2026-10-19, at version 1.1.5 (updated for 1.1.6). **[auto]** = enforced by
 `src/compliance.test.ts`; **[sim]** = checked in the Even simulator; **[you]** = needs a beta build on real glasses and a
 locked phone, which has not been done for 1.1.x.
 
