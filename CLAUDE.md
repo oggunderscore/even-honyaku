@@ -1,8 +1,7 @@
 # even-honyaku (翻訳)
 
-G2 app for live English ⇄ Japanese conversation. A standalone repository (it began inside the `even-` workspace repo,
-https://github.com/oggunderscore/even-development, whose `even-honyaku/` folder is the older copy and is no longer
-updated). Platform docs: https://hub.evenrealities.com/docs.
+G2 app for live English ⇄ Japanese conversation. A standalone repository (it began inside a larger Even workspace repo,
+where it is no longer kept). Platform docs: https://hub.evenrealities.com/docs.
 
 - **Always-on listening** (`start auto`, off until the wearer resumes it): Deepgram nova-3 with a dedicated `ja` and a dedicated `en` stream arbitrated in `src/core/arbiter.ts` (Japanese-biased; always dual, no setting). Japanese heard → glasses show **English**; English heard → **romaji** to read aloud.
 - **Hold to talk** (`start talk`): English-only stream for the wearer (phone button); releasing returns to always-on. No mode switch anywhere.

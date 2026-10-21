@@ -46,4 +46,4 @@ You bring your own Deepgram and translation (Google, OpenRouter or Claude) keys;
 
 ## Assets (portal only)
 - Icon: 24 × 24, 1-bit, built from 2 × 2 blocks. Background: greyscale. Screenshots: see above.
-- Privacy policy URL: the hosted `PRIVACY.md` (after PR #2 merges: https://github.com/oggunderscore/even-development/blob/master/even-honyaku/PRIVACY.md).
+- Privacy policy: built into the store listing; the same text is `PRIVACY.md` in this repository (https://github.com/oggunderscore/even-honyaku/blob/main/PRIVACY.md).

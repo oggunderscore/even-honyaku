@@ -43,4 +43,4 @@ and has no emergency functions. If this policy changes, the new version will be 
 
 ## Contact
 
-Questions or concerns: open an issue at https://github.com/oggunderscore/even-development/issues
+Questions or concerns: open an issue at https://github.com/oggunderscore/even-honyaku/issues
