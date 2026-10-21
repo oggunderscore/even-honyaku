@@ -1,7 +1,8 @@
 # even-honyaku (翻訳)
 
-G2 app for live English ⇄ Japanese conversation. Sibling project in the `even-` workspace
-(https://github.com/oggunderscore/even-development) — platform docs are in that repo's `even-realities-docs/`.
+G2 app for live English ⇄ Japanese conversation. A standalone repository (it began inside the `even-` workspace repo,
+https://github.com/oggunderscore/even-development, whose `even-honyaku/` folder is the older copy and is no longer
+updated). Platform docs: https://hub.evenrealities.com/docs.
 
 - **Always-on listening** (`start auto`, off until the wearer resumes it): Deepgram nova-3 with a dedicated `ja` and a dedicated `en` stream arbitrated in `src/core/arbiter.ts` (Japanese-biased; always dual, no setting). Japanese heard → glasses show **English**; English heard → **romaji** to read aloud.
 - **Hold to talk** (`start talk`): English-only stream for the wearer (phone button); releasing returns to always-on. No mode switch anywhere.
@@ -29,7 +30,7 @@ G2 app for live English ⇄ Japanese conversation. Sibling project in the `even-
 - Glasses writes are deduped and live interim text is throttled (`display.ts`) so BLE isn't flooded.
 
 ## Submission rules
-- Every Even Hub requirement is in `../SUBMISSION-CHECKLIST.md`; this project's status against it is in `SUBMISSION-AUDIT.md`; store copy and release notes are in `STORE-LISTING.md`. The machine-checkable rules run in `src/compliance.test.ts` (manifest, permissions used, whitelist covers every origin, exit is mode 1 only, no `console.*`, SDK pinned, privacy covers every permission): keep it green, and add a rule there when a reviewer teaches you a new one.
+- Every Even Hub requirement is in `docs/SUBMISSION-CHECKLIST.md`; this project's status against it is in `SUBMISSION-AUDIT.md`; store copy and release notes are in `STORE-LISTING.md`. The machine-checkable rules run in `src/compliance.test.ts` (manifest, permissions used, whitelist covers every origin, exit is mode 1 only, no `console.*`, SDK pinned, privacy covers every permission): keep it green, and add a rule there when a reviewer teaches you a new one.
 - Capture re-arming goes through `captureHealthy` (`src/capture-health.ts`): `FOREGROUND_ENTER/EXIT` also fire on every OS-menu open/close, so never restart a stream that is still delivering audio.
 
 ## Settings form
